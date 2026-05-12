@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Antigravity — Basics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --accent: #00e5ff;
+    --accent2: #7c4dff;
+    --accent3: #00e676;
+    --text: #e8e6f0;
+    --muted: #6b6880;
+    --card: #1a1a2e;
+    --border: #2a2a40;
+    --glow: rgba(0, 229, 255, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .deck { width: 100%; height: 100%; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    pointer-events: none;
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+
+  .slide.exit-left {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+    z-index: 100;
+  }
+
+  .counter {
+    position: fixed;
+    bottom: 24px; right: 36px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    z-index: 100;
+    letter-spacing: 0.05em;
+  }
+
+  .nav-hint {
+    position: fixed;
+    bottom: 24px; left: 36px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    z-index: 100;
+    opacity: 0.6;
+  }
+
+  .nav-hint kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 11px;
+    margin: 0 2px;
+    background: var(--surface);
+  }
+
+  h1 {
+    font-size: 3.2rem;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  h2 .hl { color: var(--accent); }
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.85rem;
+  }
+
+  p, li {
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--text);
+    opacity: 0.9;
+  }
+
+  .subtitle {
+    font-size: 1.35rem;
+    color: var(--muted);
+    margin-bottom: 32px;
+    max-width: 700px;
+  }
+
+  ul { list-style: none; padding: 0; }
+  ul li { padding: 8px 0 8px 28px; position: relative; }
+  ul li::before {
+    content: '▸';
+    position: absolute; left: 0;
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 24px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    transition: border-color 0.3s ease, transform 0.3s ease;
+  }
+
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+
+  .card .icon { font-size: 2rem; margin-bottom: 14px; display: block; }
+  .card h4 { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+  .card p { font-size: 0.95rem; color: var(--muted); line-height: 1.6; }
+
+  .code-block {
+    background: #0d0d15;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    margin: 16px 0;
+    overflow-x: auto;
+    color: #c8c6d8;
+  }
+
+  .code-block .kw { color: var(--accent2); }
+  .code-block .str { color: var(--accent3); }
+  .code-block .cm { color: var(--muted); font-style: italic; }
+
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.95rem;
+  }
+
+  .compare-table th {
+    text-align: left;
+    padding: 14px 18px;
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .compare-table td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    opacity: 0.85;
+  }
+
+  .compare-table tr:hover td { background: rgba(0, 229, 255, 0.03); }
+
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 30px 0;
+    flex-wrap: wrap;
+  }
+
+  .flow-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 24px;
+    text-align: center;
+    min-width: 160px;
+  }
+
+  .flow-box .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .flow-box .value { font-size: 1rem; font-weight: 600; color: var(--text); }
+  .flow-arrow { font-size: 1.5rem; color: var(--accent); opacity: 0.6; }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+
+  .badge.cyan { background: rgba(0,229,255,0.12); color: var(--accent); border: 1px solid rgba(0,229,255,0.25); }
+  .badge.purple { background: rgba(124,77,255,0.12); color: var(--accent2); border: 1px solid rgba(124,77,255,0.25); }
+  .badge.green { background: rgba(0,230,118,0.12); color: var(--accent3); border: 1px solid rgba(0,230,118,0.25); }
+
+  .divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    margin: 16px 0 20px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 16px;
+  }
+
+  .num-list { counter-reset: step; list-style: none; padding: 0; }
+  .num-list li {
+    counter-increment: step;
+    padding: 10px 0 10px 48px;
+    position: relative;
+  }
+  .num-list li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 10px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .policy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .policy-card {
+    background: var(--surface);
+    border-left: 3px solid var(--accent2);
+    padding: 18px 22px;
+    border-radius: 0 10px 10px 0;
+  }
+
+  .policy-card h4 { color: var(--accent2); font-size: 0.95rem; margin-bottom: 6px; }
+  .policy-card p { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+
+  .title-slide { text-align: center; align-items: center; }
+  .title-slide h1 { font-size: 4rem; margin-bottom: 12px; }
+  .title-slide .subtitle { max-width: 600px; text-align: center; }
+
+  .logo-icon {
+    font-size: 4rem;
+    margin-bottom: 24px;
+    display: block;
+    filter: drop-shadow(0 0 30px rgba(0,229,255,0.3));
+  }
+
+  .agenda-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .agenda-item:last-child { border-bottom: none; }
+
+  .agenda-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    color: var(--bg);
+  }
+
+  .agenda-text h4 { font-size: 1.05rem; color: var(--text); margin-bottom: 4px; }
+  .agenda-text p { font-size: 0.9rem; color: var(--muted); }
+
+  .fs-btn {
+    position: fixed;
+    top: 20px; right: 24px;
+    z-index: 100;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .fs-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .slide.active .card { animation: fadeUp 0.5s ease forwards; opacity: 0; }
+  .slide.active .card:nth-child(1) { animation-delay: 0.1s; }
+  .slide.active .card:nth-child(2) { animation-delay: 0.2s; }
+  .slide.active .card:nth-child(3) { animation-delay: 0.3s; }
+  .slide.active .card:nth-child(4) { animation-delay: 0.4s; }
+
+  .slide.active h1, .slide.active h2, .slide.active h3 { animation: fadeUp 0.5s ease forwards; }
+
+  .slide.active ul li, .slide.active .num-list li {
+    animation: fadeUp 0.4s ease forwards;
+    opacity: 0;
+  }
+  .slide.active ul li:nth-child(1), .slide.active .num-list li:nth-child(1) { animation-delay: 0.15s; }
+  .slide.active ul li:nth-child(2), .slide.active .num-list li:nth-child(2) { animation-delay: 0.25s; }
+  .slide.active ul li:nth-child(3), .slide.active .num-list li:nth-child(3) { animation-delay: 0.35s; }
+  .slide.active ul li:nth-child(4), .slide.active .num-list li:nth-child(4) { animation-delay: 0.45s; }
+  .slide.active ul li:nth-child(5), .slide.active .num-list li:nth-child(5) { animation-delay: 0.55s; }
+  .slide.active ul li:nth-child(6), .slide.active .num-list li:nth-child(6) { animation-delay: 0.65s; }
+
+  @media (max-width: 900px) {
+    .slide { padding: 36px 32px; }
+    h1 { font-size: 2.2rem; }
+    h2 { font-size: 1.5rem; }
+    .two-col { grid-template-columns: 1fr; gap: 20px; }
+    .title-slide h1 { font-size: 2.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="counter" id="counter"></div>
+<div class="nav-hint"><kbd>←</kbd> <kbd>→</kbd> or click to navigate &nbsp;|&nbsp; <kbd>F</kbd> fullscreen</div>
+<button class="fs-btn" onclick="toggleFS()">⤢ Fullscreen</button>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide title-slide active" data-slide="0">
+    <span class="logo-icon">🚀</span>
+    <h1>Google Antigravity</h1>
+    <p class="subtitle">A comprehensive guide to the agent-first IDE that redefines how we build software</p>
+    <div style="margin-top:40px;">
+      <span class="badge cyan">Part 1 of 2 — Basics</span>
+    </div>
+    <p style="font-size:0.85rem; color:var(--muted); margin-top:32px;">April 2026 &nbsp;·&nbsp; Navigate with arrow keys</p>
+  </div>
+
+  <!-- SLIDE 2: Agenda -->
+  <div class="slide" data-slide="1">
+    <h3>Overview</h3>
+    <h2>What We Will Cover <span class="hl">Today</span></h2>
+    <div class="divider"></div>
+    <div style="max-width:650px;">
+      <div class="agenda-item">
+        <div class="agenda-num">1</div>
+        <div class="agenda-text"><h4>What Is Antigravity?</h4><p>Definition, origin, and the problem it solves</p></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num">2</div>
+        <div class="agenda-text"><h4>Traditional IDE vs. Agent-First IDE</h4><p>How the developer role is shifting</p></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num">3</div>
+        <div class="agenda-text"><h4>Core Architecture</h4><p>Editor, Agent Manager, Browser, Artifacts</p></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num">4</div>
+        <div class="agenda-text"><h4>Installation &amp; Setup</h4><p>Step-by-step from download to first launch</p></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num">5</div>
+        <div class="agenda-text"><h4>Security &amp; Policy Controls</h4><p>Terminal, review, and JavaScript execution policies</p></div>
+      </div>
+      <div class="agenda-item">
+        <div class="agenda-num">6</div>
+        <div class="agenda-text"><h4>Key Concepts &amp; First Task</h4><p>Hands-on walkthrough to get started</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: What Is Antigravity -->
+  <div class="slide" data-slide="2">
+    <span class="badge cyan">Chapter 1</span>
+    <h2>What Is <span class="hl">Google Antigravity</span>?</h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:20px;">
+      Google Antigravity is a new <strong>agentic development platform</strong> released in November 2025. It evolves the traditional IDE into an <strong>agent-first experience</strong>, where autonomous AI agents can plan, code, test, and even browse the web to help you build — with minimal human intervention.
+    </p>
+    <p style="max-width:780px; margin-bottom:28px;">
+      Unlike standard coding assistants that just autocomplete lines of code, Antigravity provides a <strong>"Mission Control"</strong> for managing autonomous agents that handle complex, multi-step engineering tasks on your behalf.
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <span class="icon">🧠</span>
+        <h4>Agent-First</h4>
+        <p>AI is not just a tool — it's an autonomous actor that plans, executes, validates, and iterates on tasks independently.</p>
+      </div>
+      <div class="card">
+        <span class="icon">⚡</span>
+        <h4>Parallel Execution</h4>
+        <p>Dispatch multiple agents simultaneously on different tasks — no more waiting in a linear chat flow.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🌐</span>
+        <h4>Browser Integration</h4>
+        <p>Agents can open URLs, read web content, and interact with pages to test and verify applications visually.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📦</span>
+        <h4>Artifacts</h4>
+        <p>Tangible deliverables — plans, screenshots, walkthroughs — that let you verify agent work at a glance.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: The Problem It Solves -->
+  <div class="slide" data-slide="3">
+    <span class="badge purple">Chapter 1</span>
+    <h2>The Problem <span class="hl">It Solves</span></h2>
+    <div class="divider"></div>
+    <div class="two-col">
+      <div>
+        <h3 style="color:var(--accent2);">Before — Traditional AI Assistants</h3>
+        <ul>
+          <li>Chatbot in a sidebar — linear, synchronous conversations</li>
+          <li>Developers must wait for AI to finish before the next question</li>
+          <li>AI suggests code snippets but cannot plan or execute multi-step tasks</li>
+          <li>No ability to browse, test, or verify output autonomously</li>
+          <li>Context is limited to the current chat window</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--accent3);">After — Antigravity's Agent-First Model</h3>
+        <ul>
+          <li>Dedicated "Manager Surface" for orchestrating multiple agents</li>
+          <li>Agents work asynchronously — dispatch 5 tasks at once</li>
+          <li>Agents plan, code, test, fix errors, and iterate autonomously</li>
+          <li>Browser tool lets agents test UI and verify behavior visually</li>
+          <li>Artifacts provide reviewable deliverables, not just raw logs</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:28px; padding:20px 24px; background:var(--surface); border-left:3px solid var(--accent); border-radius:0 10px 10px 0;">
+      <p style="font-size:1rem; color:var(--muted);">
+        <strong style="color:var(--text);">Key shift:</strong> The developer moves from "someone filling out code snippets" to an <strong>"architect" or "manager"</strong>, orchestrating a workforce of digital agents.
+      </p>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Workflow Comparison -->
+  <div class="slide" data-slide="4">
+    <span class="badge purple">Chapter 1</span>
+    <h2>Workflow <span class="hl">Comparison</span></h2>
+    <div class="divider"></div>
+    <div class="flow-diagram">
+      <div class="flow-box">
+        <div class="label">Traditional IDE</div>
+        <div class="value">User → Code → Compile → Test → Fix</div>
+      </div>
+    </div>
+    <p style="text-align:center; color:var(--muted); font-size:1.5rem; margin:8px 0;">evolved into</p>
+    <div class="flow-diagram">
+      <div class="flow-box">
+        <div class="label">Antigravity</div>
+        <div class="value">User → Describe Goal → Agent Plans → Agent Codes → Agent Tests → Agent Fixes → Artifacts for Review</div>
+      </div>
+    </div>
+    <div style="margin-top:28px;">
+      <table class="compare-table">
+        <tr><th>Aspect</th><th>Traditional IDE</th><th>Antigravity</th></tr>
+        <tr><td>Developer Role</td><td>Writer of code</td><td>Architect / Manager of agents</td></tr>
+        <tr><td>Interaction</td><td>Direct code editing</td><td>High-level task delegation</td></tr>
+        <tr><td>Concurrency</td><td>One task at a time</td><td>Multiple parallel agents</td></tr>
+        <tr><td>Verification</td><td>Manual testing</td><td>Agent-generated Artifacts</td></tr>
+        <tr><td>Feedback Loop</td><td>Synchronous chat</td><td>Async with human-in-the-loop approvals</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Core Architecture -->
+  <div class="slide" data-slide="5">
+    <span class="badge cyan">Chapter 2</span>
+    <h2>Core <span class="hl">Architecture</span></h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:24px;">
+      Antigravity is built on the open-source VS Code foundation but fundamentally changes the UX by placing agent management above text editing. The interface is split into two distinct windows:
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <span class="icon">📝</span>
+        <h4>The Editor View</h4>
+        <p>A state-of-the-art, AI-powered IDE with tab completions and inline commands — for when you need to be hands-on with code. This is the familiar VS Code experience enhanced with AI.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🎛️</span>
+        <h4>The Agent Manager</h4>
+        <p>The "Mission Control" — a dedicated interface where you spawn, orchestrate, and observe multiple agents working asynchronously across different workspaces.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🌐</span>
+        <h4>Browser Tool</h4>
+        <p>Agents can open URLs, read page content, interact with elements, and execute JavaScript — enabling real-time UI testing and web scraping.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📄</span>
+        <h4>Artifacts</h4>
+        <p>Tangible deliverables like task lists, implementation plans, screenshots, and browser recordings that agents generate for your review. Think of them as "comment-able docs."</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Agent Manager Deep Dive -->
+  <div class="slide" data-slide="6">
+    <span class="badge cyan">Chapter 2</span>
+    <h2>Agent Manager — <span class="hl">Deep Dive</span></h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:20px;">
+      The Agent Manager is where the paradigm shift happens. It acts as a <strong>task control center</strong> for managing autonomous agents that run in parallel across different workspaces or tasks.
+    </p>
+    <div class="two-col">
+      <div>
+        <h3>What You Can Do</h3>
+        <ul>
+          <li>Generate, monitor, and interact with multiple agents</li>
+          <li>Define high-level goals: "Refactor auth module," "Generate test suite," "Update dependencies"</li>
+          <li>Each request spawns a dedicated agent instance</li>
+          <li>View agent status, generated artifacts, and pending approval requests</li>
+          <li>Leave feedback directly on artifacts — like commenting on a Google Doc</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Why It Matters</h3>
+        <ul>
+          <li><strong>No more linear waiting:</strong> Dispatch 5 agents for 5 different bugs simultaneously</li>
+          <li><strong>Trust through transparency:</strong> Artifacts show exactly what the agent is doing</li>
+          <li><strong>Async by design:</strong> Focus on your primary work while agents handle background tasks</li>
+          <li><strong>Model flexibility:</strong> Choose between Gemini 3 Pro, Claude Sonnet 4.5, or GPT-OSS</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Installation -->
+  <div class="slide" data-slide="7">
+    <span class="badge green">Chapter 3</span>
+    <h2>Installation &amp; <span class="hl">Setup</span></h2>
+    <div class="divider"></div>
+    <div class="two-col">
+      <div>
+        <h3>Prerequisites</h3>
+        <ul>
+          <li><strong>Personal Gmail account</strong> (required for preview access)</li>
+          <li><strong>Chrome</strong> web browser</li>
+          <li><strong>Mac, Windows,</strong> or supported <strong>Linux</strong> distribution</li>
+        </ul>
+        <h3 style="margin-top:24px;">Download</h3>
+        <ul>
+          <li>Visit the official downloads page</li>
+          <li>Select your operating system</li>
+          <li>Run the installer and launch the app</li>
+        </ul>
+      </div>
+      <div>
+        <h3>First Launch Wizard</h3>
+        <ol class="num-list">
+          <li><strong>Import Settings</strong> — Option to import from VS Code or Cursor, or start fresh</li>
+          <li><strong>Choose Theme</strong> — Light or Dark (your preference)</li>
+          <li><strong>Select Agent Mode</strong> — Choose how much autonomy agents have (see next slide)</li>
+          <li><strong>Configure Editor</strong> — Keybindings, extensions, CLI tool installation</li>
+          <li><strong>Sign in with Google</strong> — Authenticate with your personal Gmail</li>
+          <li><strong>Accept Terms</strong> — Review and accept usage terms</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Agent Modes -->
+  <div class="slide" data-slide="8">
+    <span class="badge green">Chapter 3</span>
+    <h2>Agent <span class="hl">Modes</span> at Setup</h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:20px;">
+      During setup, Antigravity asks how autonomous you want your agents to be. Four preset options are available:
+    </p>
+    <div class="card-grid">
+      <div class="card" style="border-left:3px solid #ff5252;">
+        <h4>Safe Mode</h4>
+        <p>Enhanced security controls. Limits agent access to external resources and sensitive operations. Maximum safety, minimum autonomy.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--accent);">
+        <h4>Feedback-Oriented (Recommended)</h4>
+        <p>Agents frequently seek your feedback. Good balance of autonomy and control. The recommended starting point for new users.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--accent3);">
+        <h4>Agent-Driven</h4>
+        <p>Agents never request review. Full autonomy — fastest execution but least oversight. Use only when you fully trust the task scope.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--accent2);">
+        <h4>Custom Configuration</h4>
+        <p>Fine-tune every policy individually: terminal execution, review requirements, and JavaScript execution. For advanced users.</p>
+      </div>
+    </div>
+    <p style="margin-top:16px; font-size:0.9rem; color:var(--muted);">
+      You can change these settings anytime via Antigravity User Settings (<code>Ctrl+,</code> / <code>Cmd+,</code>).
+    </p>
+  </div>
+
+  <!-- SLIDE 10: Security Policies -->
+  <div class="slide" data-slide="9">
+    <span class="badge green">Chapter 3</span>
+    <h2>Security <span class="hl">Policies</span> Explained</h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:16px;">Three independent policy dimensions control agent behavior:</p>
+    <div class="policy-grid">
+      <div class="policy-card">
+        <h4>Terminal Execution Policy</h4>
+        <p><strong>Always Continue</strong> — Auto-execute all commands (except deny-list).<br>
+        <strong>Request Review</strong> — Ask approval before every terminal command.</p>
+      </div>
+      <div class="policy-card">
+        <h4>Review Policy</h4>
+        <p><strong>Always Continue</strong> — Agent never asks for review.<br>
+        <strong>Agent Decides</strong> — Agent chooses when to seek approval.<br>
+        <strong>Request Review</strong> — Always ask before proceeding.</p>
+      </div>
+      <div class="policy-card">
+        <h4>JavaScript Execution Policy</h4>
+        <p><strong>Always Continue</strong> — Run JS freely in browser (highest risk).<br>
+        <strong>Request Review</strong> — Ask permission before JS execution.<br>
+        <strong>Disabled</strong> — Never run JavaScript in the browser.</p>
+      </div>
+      <div class="policy-card" style="border-left-color:var(--accent);">
+        <h4>Allow / Deny Lists</h4>
+        <p>Configure specific terminal commands that are always allowed or always blocked, regardless of the overall policy. Essential for security-conscious teams.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Key Concepts -->
+  <div class="slide" data-slide="10">
+    <span class="badge cyan">Chapter 4</span>
+    <h2>Key <span class="hl">Concepts</span></h2>
+    <div class="divider"></div>
+    <div class="card-grid">
+      <div class="card">
+        <span class="icon">💬</span>
+        <h4>Prompts &amp; Tasks</h4>
+        <p>You describe what you want in natural language. The agent interprets intent, breaks it into steps, and executes. Example: "Build a cyberpunk to-do list with neon colors and glitch effects."</p>
+      </div>
+      <div class="card">
+        <span class="icon">📎</span>
+        <h4>Context with @</h4>
+        <p>Use <code>@</code> to add files, folders, or other context to your prompts — similar to Cursor or Gemini CLI. This helps agents understand your project structure.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📊</span>
+        <h4>Model Selection</h4>
+        <p>Choose from available models via the dropdown: Gemini 3 Pro (default "Fast" mode), Claude Sonnet 4.5, GPT-OSS, and more.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📁</span>
+        <h4>Workspaces</h4>
+        <p>Just like VS Code — open a local folder as your workspace. Agents operate within the context of the selected workspace.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📋</span>
+        <h4>Artifacts</h4>
+        <p>Agents produce deliverables — task plans, implementation diffs, screenshots, walkthrough docs. You can comment on them directly for targeted feedback.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🔧</span>
+        <h4>CLI Companion</h4>
+        <p>Install the <code>agy</code> command-line tool during setup to open Antigravity from the terminal with the command <code>agy .</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: How a Task Flows -->
+  <div class="slide" data-slide="11">
+    <span class="badge purple">Chapter 4</span>
+    <h2>How a <span class="hl">Task Flows</span></h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:24px;">
+      Here is what happens when you submit a task in the Agent Manager:
+    </p>
+    <div class="flow-diagram">
+      <div class="flow-box"><div class="label">Step 1</div><div class="value">You write a prompt</div></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><div class="label">Step 2</div><div class="value">Agent plans the task</div></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><div class="label">Step 3</div><div class="value">Agent writes code</div></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><div class="label">Step 4</div><div class="value">Agent runs terminal</div></div>
+    </div>
+    <div class="flow-diagram">
+      <div class="flow-box"><div class="label">Step 5</div><div class="value">Agent tests in browser</div></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><div class="label">Step 6</div><div class="value">Errors? Agent self-heals</div></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><div class="label">Step 7</div><div class="value">Artifacts generated</div></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><div class="label">Step 8</div><div class="value">You review &amp; approve</div></div>
+    </div>
+    <div style="margin-top:24px; padding:18px 24px; background:var(--surface); border-radius:10px; border:1px solid var(--border);">
+      <p style="font-size:0.95rem; color:var(--muted);">
+        <strong style="color:var(--accent3);">Real example:</strong> A developer asked Antigravity to build a Cyberpunk To-Do List. With a single prompt, the agent generated a complete runnable MVP with UI, logic, and even deployed it locally. Another developer built an entire iPhone app from scratch — reaching MVP in a single evening.
+      </p>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Artifacts In Detail -->
+  <div class="slide" data-slide="12">
+    <span class="badge purple">Chapter 4</span>
+    <h2>Understanding <span class="hl">Artifacts</span></h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:20px;">
+      Artifacts are how agents communicate their work to you. Instead of scrolling through raw tool calls and logs, you get structured, reviewable deliverables:
+    </p>
+    <div class="two-col">
+      <div>
+        <h3>Types of Artifacts</h3>
+        <ul>
+          <li><strong>Task Plans</strong> — Step-by-step breakdown of what the agent will do</li>
+          <li><strong>Implementation Plans</strong> — Technical approach and architecture decisions</li>
+          <li><strong>Diffs</strong> — Code changes the agent has made</li>
+          <li><strong>Screenshots</strong> — Visual proof of UI changes</li>
+          <li><strong>Walkthroughs</strong> — Narrative docs explaining what was done and why</li>
+          <li><strong>Browser Recordings</strong> — Captures of the agent testing in the browser</li>
+        </ul>
+      </div>
+      <div>
+        <h3>How to Use Them</h3>
+        <ul>
+          <li><strong>Review at a glance</strong> — No need to read every line of code</li>
+          <li><strong>Comment directly</strong> — Like commenting on a Google Doc; leave targeted feedback on specific parts</li>
+          <li><strong>Agent incorporates feedback</strong> — Without stopping its execution flow</li>
+          <li><strong>Builds trust</strong> — See exactly what the agent did and why</li>
+        </ul>
+        <div style="margin-top:16px; padding:14px 18px; background:var(--surface); border-radius:8px; border:1px solid var(--border);">
+          <p style="font-size:0.85rem; color:var(--muted);">
+            Unlike chat-based tools, walkthroughs are not written to your project workspace — they don't clutter up your project with point-in-time documents.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Real Use Cases -->
+  <div class="slide" data-slide="13">
+    <span class="badge green">Chapter 5</span>
+    <h2>Real-World <span class="hl">Use Cases</span></h2>
+    <div class="divider"></div>
+    <div class="card-grid">
+      <div class="card">
+        <span class="icon">🎮</span>
+        <h4>Full App from Scratch</h4>
+        <p>A developer built a complete iPhone cryptogram game — from zero Swift experience to published MVP in one evening using Antigravity.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🌆</span>
+        <h4>Cyberpunk Web App</h4>
+        <p>"Build a Cyberpunk To-Do List with neon colors, glitch effects, and laser sounds." One prompt produced a complete deployed app.</p>
+      </div>
+      <div class="card">
+        <span class="icon">⚡</span>
+        <h4>Performance Optimization</h4>
+        <p>An agent analyzed a project, introduced batch processing and eager loading, and presented a walkthrough — all from a single question.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🔒</span>
+        <h4>Secure Code Review</h4>
+        <p>Security engineers use Antigravity for high-level secure code reviews and recommendations for remediation of common vulnerabilities.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🧪</span>
+        <h4>Test Automation</h4>
+        <p>Agents can generate unit, integration, and end-to-end tests alongside new features — saving significant QA time.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🌐</span>
+        <h4>Web Scraping &amp; Research</h4>
+        <p>Agents browse web pages, parse information, and aggregate external data — all without manual copy-pasting.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Comparison with Other Tools -->
+  <div class="slide" data-slide="14">
+    <span class="badge purple">Chapter 5</span>
+    <h2>How It <span class="hl">Compares</span></h2>
+    <div class="divider"></div>
+    <table class="compare-table">
+      <tr><th>Feature</th><th>GitHub Copilot</th><th>Cursor</th><th>Google Antigravity</th></tr>
+      <tr><td>Core Paradigm</td><td>AI assistant in sidebar</td><td>AI-native editor</td><td>Agent-first platform</td></tr>
+      <tr><td>Multi-Agent</td><td>Single agent</td><td>Single agent</td><td>Multiple parallel agents</td></tr>
+      <tr><td>Browser Integration</td><td>Via MCP (limited)</td><td>Not built-in</td><td>Native, deep integration</td></tr>
+      <tr><td>Artifacts System</td><td>Chat history</td><td>Chat history</td><td>Structured deliverables</td></tr>
+      <tr><td>Async Task Execution</td><td>No</td><td>No</td><td>Yes — dispatch and observe</td></tr>
+      <tr><td>Model Choice</td><td>Multiple models</td><td>Multiple models</td><td>Gemini, Claude, GPT-OSS</td></tr>
+      <tr><td>Free Tier</td><td>Limited</td><td>Limited</td><td>Free preview with personal Gmail</td></tr>
+      <tr><td>Base</td><td>VS Code extension</td><td>VS Code fork</td><td>VS Code fork</td></tr>
+    </table>
+    <p style="margin-top:16px; font-size:0.85rem; color:var(--muted);">
+      Note: Antigravity is newer (Nov 2025) and still evolving. Copilot has 4 years of maturity and a massive ecosystem behind it.
+    </p>
+  </div>
+
+  <!-- SLIDE 16: Skills Preview -->
+  <div class="slide" data-slide="15">
+    <span class="badge cyan">Chapter 6</span>
+    <h2>Skills — <span class="hl">A Preview</span></h2>
+    <div class="divider"></div>
+    <p style="max-width:780px; margin-bottom:20px;">
+      Skills address <strong>"Context Saturation"</strong> — the problem of loading hundreds of tools and entire codebases into the model's memory, causing latency, cost, and confusion.
+    </p>
+    <div class="two-col">
+      <div>
+        <h3>The Problem</h3>
+        <ul>
+          <li>Agents loaded with hundreds of tools from various MCP servers</li>
+          <li>40–50K tokens consumed before the agent even starts your task</li>
+          <li>Context rot: the model gets confused by irrelevant information</li>
+        </ul>
+      </div>
+      <div>
+        <h3>The Solution: Progressive Disclosure</h3>
+        <ul>
+          <li>Skills are <strong>modular, discoverable packages</strong> of specialized knowledge</li>
+          <li>Model sees only a lightweight "menu" (metadata) at session start</li>
+          <li>Heavy instructions loaded <strong>only when intent matches</strong></li>
+          <li>Turns the generalist Gemini model into a specialist on demand</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:20px; padding:16px 22px; background:var(--surface); border-radius:10px; border:1px solid var(--border);">
+      <p style="font-size:0.9rem; color:var(--muted);">
+        <strong style="color:var(--accent);">Note:</strong> Skills are covered in depth in Part 2 (Advanced). This is just a preview of why they exist and what problem they solve.
+      </p>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Tips for Beginners -->
+  <div class="slide" data-slide="16">
+    <span class="badge green">Chapter 6</span>
+    <h2>Tips for <span class="hl">Getting Started</span></h2>
+    <div class="divider"></div>
+    <div class="two-col">
+      <div>
+        <h3>Best Practices</h3>
+        <ol class="num-list">
+          <li><strong>Start with "Feedback-Oriented" mode</strong> — gives you visibility into what agents are doing while maintaining good autonomy</li>
+          <li><strong>Be specific in prompts</strong> — describe the vibe, tech stack, and constraints clearly</li>
+          <li><strong>Use @ to add context</strong> — reference files, folders, and code to guide the agent</li>
+          <li><strong>Review Artifacts, not code</strong> — trust the artifact system for verification</li>
+          <li><strong>Start small</strong> — try a simple task first to understand the workflow before delegating complex projects</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Things to Know</h3>
+        <ul>
+          <li>Free preview available with personal Gmail — not Workspace accounts yet</li>
+          <li>Generous rate limits on Gemini 3 Pro during the preview period</li>
+          <li>Quota limits may change — Google is still tuning the economics</li>
+          <li>MCP server support available but still expanding</li>
+          <li>Browser tabs can accumulate — no auto-close feature yet</li>
+          <li>Works best with Chrome for browser integration features</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: What's Coming in Part 2 -->
+  <div class="slide" data-slide="17">
+    <span class="badge purple">Preview</span>
+    <h2>Coming in <span class="hl">Part 2 — Advanced</span></h2>
+    <div class="divider"></div>
+    <div class="card-grid">
+      <div class="card">
+        <span class="icon">🧩</span>
+        <h4>Skills In-Depth</h4>
+        <p>Creating, managing, and deploying custom Skills. Global vs. Workspace skills. Progressive disclosure in practice.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🔄</span>
+        <h4>Rules &amp; Workflows</h4>
+        <p>Custom rules for coding standards. Repeatable workflow commands. Nudging agents to follow your guidelines.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🔌</span>
+        <h4>MCP Server Integration</h4>
+        <p>Connecting external tools and data sources via Model Context Protocol servers.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🛡️</span>
+        <h4>Advanced Security</h4>
+        <p>Allow/Deny lists, Browser Allow lists, secure coding patterns, and team-level security configurations.</p>
+      </div>
+      <div class="card">
+        <span class="icon">🏗️</span>
+        <h4>Complex Project Patterns</h4>
+        <p>Multi-agent orchestration for large codebases. Spec-driven development. Background maintenance tasks.</p>
+      </div>
+      <div class="card">
+        <span class="icon">📈</span>
+        <h4>Optimization &amp; Troubleshooting</h4>
+        <p>Managing quotas, debugging agent behavior, maximizing throughput, and common pitfalls to avoid.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: Summary -->
+  <div class="slide" data-slide="18">
+    <span class="badge cyan">Summary</span>
+    <h2>Key <span class="hl">Takeaways</span></h2>
+    <div class="divider"></div>
+    <div style="max-width:780px;">
+      <ol class="num-list">
+        <li><strong>Antigravity is agent-first, not chat-first.</strong> It treats AI as autonomous actors, not passive assistants.</li>
+        <li><strong>The developer becomes an architect.</strong> You define goals; agents handle implementation, testing, and iteration.</li>
+        <li><strong>Parallel agents = massive throughput.</strong> Dispatch multiple tasks simultaneously instead of waiting in a linear chat.</li>
+        <li><strong>Artifacts build trust.</strong> Structured deliverables replace raw logs for transparent, reviewable agent work.</li>
+        <li><strong>Browser integration is a game-changer.</strong> Agents can visually test and verify your applications in real-time.</li>
+        <li><strong>Security is configurable.</strong> Three policy dimensions let you control exactly how much autonomy agents have.</li>
+        <li><strong>Free and accessible.</strong> Available now in public preview with a personal Gmail account on Mac, Windows, and Linux.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: Thank You -->
+  <div class="slide title-slide" data-slide="19">
+    <span class="logo-icon">🚀</span>
+    <h1>Ready for Liftoff</h1>
+    <p class="subtitle">You now understand the fundamentals of Google Antigravity. In Part 2, we'll go deep into Skills, Workflows, MCP integration, and advanced patterns.</p>
+    <div style="margin-top:36px;">
+      <span class="badge cyan">End of Part 1</span>
+      <span class="badge purple" style="margin-left:8px;">Part 2 — Advanced — Coming Next</span>
+    </div>
+    <p style="font-size:0.85rem; color:var(--muted); margin-top:40px;">
+      Download Antigravity: <strong style="color:var(--accent);">antigravity.google/download</strong>
+    </p>
+  </div>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+  const total = slides.length;
+
+  function updateSlide(index) {
+    slides.forEach((s, i) => {
+      s.classList.remove('active', 'exit-left');
+      if (i < index) s.classList.add('exit-left');
+      if (i === index) s.classList.add('active');
+    });
+    current = index;
+    progress.style.width = ((current + 1) / total * 100) + '%';
+    counter.textContent = String(current + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+  }
+
+  function next() { if (current < total - 1) updateSlide(current + 1); }
+  function prev() { if (current > 0) updateSlide(current - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+    if (e.key === 'f' || e.key === 'F') toggleFS();
+  });
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('.fs-btn')) return;
+    if (e.clientX < window.innerWidth * 0.3) prev(); else next();
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+  });
+
+  function toggleFS() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  updateSlide(0);
+</script>
+</body>
+</html>
